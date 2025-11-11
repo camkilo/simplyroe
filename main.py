@@ -16,6 +16,28 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import json, os, random
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from actions import attack, flee, encounter_enemy, gather
+from game_state import player_state
+
+app = FastAPI()
+
+@app.get("/status")
+def status():
+    return JSONResponse(content=player_state)
+
+@app.post("/action/{action_name}")
+def do_action(action_name: str):
+    if action_name == "attack":
+        return {"result": attack()}
+    elif action_name == "flee":
+        return {"result": flee()}
+    elif action_name == "encounter":
+        return {"result": encounter_enemy()}
+    elif action_name == "gather":
+        return {"result": gather()}
+    return {"result": "Unknown action"}
 
 app = FastAPI()
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
