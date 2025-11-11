@@ -20,6 +20,30 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from actions import attack, flee, encounter_enemy, gather
 from game_state import player_state
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from actions import attack, flee, encounter, gather, explore
+from game_state import player_state
+
+app = FastAPI()
+
+@app.get("/status")
+def status():
+    return JSONResponse(content=player_state)
+
+@app.post("/action/{action_name}")
+def do_action(action_name: str):
+    if action_name == "attack":
+        return {"result": attack()}
+    elif action_name == "flee":
+        return {"result": flee()}
+    elif action_name == "encounter":
+        return {"result": encounter()}
+    elif action_name == "gather":
+        return {"result": gather()}
+    elif action_name == "explore":
+        return {"result": explore()}
+    return {"result": "Unknown action"}
 
 app = FastAPI()
 
