@@ -12,7 +12,98 @@ import os, json, hashlib, random, datetime, uuid
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+import json, os, random
 
+app = FastAPI()
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+CHUNK_SIZE = 10
+biomes = ['forest','water','mountain','desert','lava','ice','plains','swamp']
+world_file = "world.json"
+player_file = "players.json"
+
+# Load or create world
+if os.path.exists(world_file):
+    with open(world_file,'r') as f:
+        world = json.load(f)
+else:
+    world = {}
+
+if os.path.exists(player_file):
+    with open(player_file,'r') as f:
+        players = json.load(f)
+else:
+    players = {}
+
+def save_world():
+    with open(world_file,'w') as f:
+        json.dump(world,f)
+
+def save_players():
+    with open(player_file,'w') as f:
+        json.dump(players,f)
+
+def generate_chunk(cx,cy):
+    chunk = {}
+    for y in range(CHUNK_SIZE):
+        for x in range(CHUNK_SIZE):
+            biome = random.choice(biomes)
+            chunk[f"{x},{y}"] = {"biome":biome,"effect":None}
+    return chunk
+
+@app.get("/get_chunk")
+def get_chunk(cx:int,cy:int):
+    key = f"{cx},{cy}"
+    if key not in world:
+        world[key] = generate_chunk(cx,cy)
+        save_world()
+    return world[key]
+
+@app.get("/gather")
+def gather(player_id:str,cx:int,cy:int,x:int,y:int):
+    # register player if new
+    if player_id not in players:
+        players[player_id] = {"inventory":[],"chunk_x":cx,"chunk_y":cy,"x":x,"y":y}
+        save_players()
+    biome = world[f"{cx},{cy}"][f"{x},{y}"]["biome"]
+    item = random.choice(['Hydrogen','Oxygen','Carbon','Gold'])
+    rarity = random.choices(['common','rare','epic'],[0.7,0.25,0.05])[0]
+    effect = "glow" if rarity != 'common' else None
+    world[f"{cx},{cy}"][f"{x},{y}"]["effect"] = effect
+    players[player_id]["inventory"].append(item)
+    save_world()
+    save_players()
+    return {"item":item,"rarity":rarity,"effect":effect}
+
+@app.get("/craft")
+def craft(player_id:str):
+    if player_id not in players: return {"msg":"No player found"}
+    inv = players[player_id]["inventory"]
+    if not inv: return {"msg":"No items to craft"}
+    crafted = "".join(inv[:2]) + " Compound"
+    # spawn new tiles in nearby chunk
+    cx = players[player_id]["chunk_x"]
+    cy = players[player_id]["chunk_y"]
+    new_tiles = []
+    for _ in range(random.randint(1,3)):
+        nx = random.randint(0,CHUNK_SIZE-1)
+        ny = random.randint(0,CHUNK_SIZE-1)
+        biome = random.choice(biomes)
+        world[f"{cx},{cy}"][f"{nx},{ny}"] = {"biome":biome,"effect":"glow"}
+        new_tiles.append({"x":nx,"y":ny,"biome":biome,"effect":"glow"})
+    players[player_id]["inventory"] = []
+    save_world()
+    save_players()
+    return {"item":crafted,"rarity":"rare","new_tiles":new_tiles}
 app = FastAPI()  # ← must be before mounting anything
 
 # Then mount static
