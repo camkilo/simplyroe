@@ -10,6 +10,19 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os, json, hashlib, random, datetime, uuid
 from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+
+app = FastAPI()  # ← must be before mounting anything
+
+# Then mount static
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+# Your routes
+@app.get("/hello")
+def hello():
+    return {"msg":"Hello World"}
+
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 APP_NAME = "Realm of Echoes (Single-Repo Playable Demo)"
