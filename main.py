@@ -9,7 +9,9 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import os, json, hashlib, random, datetime, uuid
+from fastapi.staticfiles import StaticFiles
 
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 APP_NAME = "Realm of Echoes (Single-Repo Playable Demo)"
 DATA_DIR = ".data"
 PLAYERS_FILE = os.path.join(DATA_DIR, "players.json")
