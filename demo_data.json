@@ -1,0 +1,8 @@
+{
+  "starter_elements": ["Hydrogen", "Iron", "Gold"],
+  "example_blueprint": {
+    "elements": ["Iron", "Gold"],
+    "discovered_by": "System",
+    "id": "0000000001"
+  }
+}
