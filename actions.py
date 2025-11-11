@@ -1,11 +1,14 @@
 from game_state import player_state
-from world import spawn_enemy, generate_loot
+from world import spawn_enemy, generate_loot, discover_new_location, gather_resources
 import random
 
-def encounter_enemy():
+def encounter():
     if not player_state["enemy"]:
-        player_state["enemy"] = spawn_enemy()
-        return f"A wild {player_state['enemy']['name']} appears!"
+        enemy = spawn_enemy(player_state["location"])
+        if enemy:
+            player_state["enemy"] = enemy
+            return f"A wild {enemy['name']} appears in the {player_state['location']}!"
+        return "No enemies here."
     return f"You are already fighting a {player_state['enemy']['name']}!"
 
 def attack():
@@ -23,8 +26,8 @@ def attack():
         name = enemy["name"]
         player_state["enemy"] = None
         return f"You defeated the {name}! Loot: {loot}"
-    
-    # Enemy strikes back
+
+    # Enemy attacks back
     enemy_damage = random.randint(5, 10)
     player_state["health"] -= enemy_damage
     return (f"You hit the {enemy['name']} for {damage} damage. "
@@ -39,8 +42,14 @@ def flee():
     return "No enemy to flee from."
 
 def gather():
-    resources = ["Copper", "Iron", "Wood", "Stone", "Herbs"]
-    found = random.choices(resources, k=random.randint(1,3))
+    found = gather_resources()
     player_state["inventory"].extend(found)
     player_state["xp"] += 5
     return f"You gathered: {found}"
+
+def explore():
+    new_location = discover_new_location(player_state["discovered_locations"])
+    player_state["location"] = new_location
+    if new_location not in player_state["discovered_locations"]:
+        player_state["discovered_locations"].append(new_location)
+    return f"You moved to the {new_location}!"
