@@ -5,33 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Realm of Echoes</title>
 <style>
-    body { font-family: sans-serif; background:#111; color:#eee; margin:0; padding:0;}
-    #game { display:grid; grid-template-columns:repeat(10,40px); grid-gap:2px; margin:20px;}
-    .tile { width:40px; height:40px; display:flex; align-items:center; justify-content:center;
-            background:#222; border:1px solid #333; cursor:pointer; transition:0.2s;}
-    .forest { background:green;}
-    .water { background:blue;}
-    .mountain { background:gray;}
-    .desert { background:goldenrod;}
-    .player { border:2px solid cyan; animation:pulse 1s infinite;}
-    @keyframes pulse {0%{box-shadow:0 0 5px cyan;}50%{box-shadow:0 0 15px cyan;}100%{box-shadow:0 0 5px cyan;}}
+body {font-family:sans-serif; margin:0; padding:0; background:#111; color:#eee;}
+#game {display:grid; grid-template-columns:repeat(15,40px); grid-gap:2px; margin:10px auto; width:max-content;}
+.tile {width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#222; border:1px solid #333; cursor:pointer; position:relative; transition:0.2s;}
+.tile.player {border:2px solid cyan; animation:pulse 1s infinite;}
+.tile.glow {box-shadow:0 0 15px gold;}
+@keyframes pulse {0%{box-shadow:0 0 5px cyan;}50%{box-shadow:0 0 15px cyan;}100%{box-shadow:0 0 5px cyan;}}
+#log {margin-top:10px; max-height:150px; overflow:auto;}
+button{margin:5px; padding:5px 10px; cursor:pointer;}
 </style>
 </head>
 <body>
-<h2 style="text-align:center">Realm of Echoes</h2>
+<h2 style="text-align:center;">Realm of Echoes</h2>
 <div id="game"></div>
-<div style="text-align:center; margin:10px;">
+<div style="text-align:center;">
     <button onclick="gather()">Gather</button>
     <button onclick="craft()">Craft</button>
-    <div id="log" style="margin-top:10px;"></div>
+    <div id="log"></div>
 </div>
 
 <script>
-const size = 10;
+const size = 15;
 let world = [];
 let player = {x:0, y:0, inventory:[]};
-
-const biomes = ['forest','water','mountain','desert'];
+const biomes = ['forest','water','mountain','desert','lava','ice','plains','swamp'];
 
 function initWorld(){
     const game = document.getElementById('game');
@@ -41,7 +38,7 @@ function initWorld(){
         let row = [];
         for(let x=0;x<size;x++){
             const biome = biomes[Math.floor(Math.random()*biomes.length)];
-            row.push(biome);
+            row.push({biome:biome, effect:null});
             const tile = document.createElement('div');
             tile.className = 'tile '+biome;
             tile.id = `tile-${x}-${y}`;
@@ -54,16 +51,16 @@ function initWorld(){
 }
 
 function drawPlayer(){
-    // Remove existing player class
-    document.querySelectorAll('.tile').forEach(t=>t.classList.remove('player'));
-    document.getElementById(`tile-${player.x}-${player.y}`).classList.add('player');
+    document.querySelectorAll('.tile').forEach(t=>{ t.classList.remove('player'); t.classList.remove('glow'); });
+    const tile = document.getElementById(`tile-${player.x}-${player.y}`);
+    tile.classList.add('player');
+    if(world[player.y][player.x].effect) tile.classList.add(world[player.y][player.x].effect);
 }
 
 function movePlayer(x,y){
-    player.x = x;
-    player.y = y;
+    player.x=x; player.y=y;
     drawPlayer();
-    logMessage(`Moved to ${world[y][x]} biome.`);
+    logMessage(`Moved to ${world[y][x].biome} biome.`);
 }
 
 function logMessage(msg){
@@ -73,28 +70,30 @@ function logMessage(msg){
     log.prepend(p);
 }
 
-// --- Game Actions ---
+// --- Actions ---
 
 async function gather(){
-    const biome = world[player.y][player.x];
+    const biome = world[player.y][player.x].biome;
     const res = await fetch(`/gather?x=${player.x}&y=${player.y}&biome=${biome}`);
-    const data = await res.json().catch(()=>({msg:"Gather simulated"}));
-    player.inventory.push(data.item || "Element");
-    logMessage(`Gathered: ${data.item || "an element"} in ${biome}`);
+    const data = await res.json().catch(()=>({item:"Element",rarity:"common",effect:"glow"}));
+    player.inventory.push(data.item);
+    if(data.effect) world[player.y][player.x].effect = data.effect;
+    drawPlayer();
+    logMessage(`Gathered: ${data.item} (${data.rarity})`);
 }
 
 async function craft(){
     const res = await fetch(`/craft?inventory=${player.inventory.join(',')}`);
-    const data = await res.json().catch(()=>({msg:"Craft simulated"}));
-    if(data.item){
-        logMessage(`Crafted: ${data.item}`);
-        player.inventory = []; // simple reset
-    } else {
-        logMessage('Crafting failed or simulated');
-    }
+    const data = await res.json().catch(()=>({item:"Potion",rarity:"rare",new_tiles:[{x:Math.floor(Math.random()*size),y:Math.floor(Math.random()*size),biome:'forest',effect:'glow'}]}));
+    if(data.item) logMessage(`Crafted: ${data.item} (${data.rarity})`);
+    if(data.new_tiles) data.new_tiles.forEach(t=>{
+        world[t.y][t.x] = {biome:t.biome,effect:t.effect};
+    });
+    player.inventory = [];
+    drawPlayer();
 }
 
-// Initialize
+// --- Initialize ---
 initWorld();
 </script>
 </body>
