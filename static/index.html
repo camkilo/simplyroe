@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Realm of Echoes</title>
+<title>Realm of Echoes - Infinite</title>
 <style>
-body {font-family:sans-serif; margin:0; padding:0; background:#111; color:#eee;}
-#game {display:grid; grid-template-columns:repeat(15,40px); grid-gap:2px; margin:10px auto; width:max-content;}
-.tile {width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#222; border:1px solid #333; cursor:pointer; position:relative; transition:0.2s;}
-.tile.player {border:2px solid cyan; animation:pulse 1s infinite;}
+body {background:#111;color:#eee;font-family:sans-serif;margin:0;padding:0;}
+#game {display:grid; grid-gap:2px; margin:10px auto;}
+.tile {width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:#222;border:1px solid #333;cursor:pointer;transition:0.2s;}
+.tile.player {border:2px solid cyan;animation:pulse 1s infinite;}
 .tile.glow {box-shadow:0 0 15px gold;}
 @keyframes pulse {0%{box-shadow:0 0 5px cyan;}50%{box-shadow:0 0 15px cyan;}100%{box-shadow:0 0 5px cyan;}}
-#log {margin-top:10px; max-height:150px; overflow:auto;}
-button{margin:5px; padding:5px 10px; cursor:pointer;}
+#log {max-height:150px;overflow:auto;margin-top:10px;}
+button{margin:5px;padding:5px 10px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -25,76 +25,73 @@ button{margin:5px; padding:5px 10px; cursor:pointer;}
 </div>
 
 <script>
-const size = 15;
-let world = [];
-let player = {x:0, y:0, inventory:[]};
-const biomes = ['forest','water','mountain','desert','lava','ice','plains','swamp'];
+const CHUNK_SIZE=10;
+let chunk_x=0, chunk_y=0;
+let player={x:0,y:0,inventory:[],id:"player1"};
+let world_chunk={};
 
-function initWorld(){
-    const game = document.getElementById('game');
-    game.innerHTML = '';
-    world = [];
-    for(let y=0;y<size;y++){
-        let row = [];
-        for(let x=0;x<size;x++){
-            const biome = biomes[Math.floor(Math.random()*biomes.length)];
-            row.push({biome:biome, effect:null});
-            const tile = document.createElement('div');
-            tile.className = 'tile '+biome;
-            tile.id = `tile-${x}-${y}`;
-            tile.onclick = ()=>movePlayer(x,y);
-            game.appendChild(tile);
-        }
-        world.push(row);
-    }
-    drawPlayer();
+function logMessage(msg){
+    const log=document.getElementById('log');
+    const p=document.createElement('p');
+    p.textContent=msg;
+    log.prepend(p);
 }
 
-function drawPlayer(){
-    document.querySelectorAll('.tile').forEach(t=>{ t.classList.remove('player'); t.classList.remove('glow'); });
-    const tile = document.getElementById(`tile-${player.x}-${player.y}`);
-    tile.classList.add('player');
-    if(world[player.y][player.x].effect) tile.classList.add(world[player.y][player.x].effect);
+async function loadChunk(cx,cy){
+    const res=await fetch(`/get_chunk?cx=${cx}&cy=${cy}`);
+    world_chunk = await res.json();
+    drawWorld();
+}
+
+function drawWorld(){
+    const game = document.getElementById('game');
+    game.style.gridTemplateColumns = `repeat(${CHUNK_SIZE},40px)`;
+    game.innerHTML = '';
+    for(let y=0;y<CHUNK_SIZE;y++){
+        for(let x=0;x<CHUNK_SIZE;x++){
+            const key=`${x},${y}`;
+            const tile=document.createElement('div');
+            tile.className='tile '+world_chunk[key].biome;
+            if(world_chunk[key].effect) tile.classList.add(world_chunk[key].effect);
+            if(player.x===x && player.y===y) tile.classList.add('player');
+            tile.onclick=()=>movePlayer(x,y);
+            game.appendChild(tile);
+        }
+    }
 }
 
 function movePlayer(x,y){
     player.x=x; player.y=y;
-    drawPlayer();
-    logMessage(`Moved to ${world[y][x].biome} biome.`);
+    // auto-load next chunk if at edge
+    if(x===CHUNK_SIZE-1){chunk_x++;player.x=0;loadChunk(chunk_x,chunk_y);}
+    if(x===0 && chunk_x>0){chunk_x--;player.x=CHUNK_SIZE-1;loadChunk(chunk_x,chunk_y);}
+    if(y===CHUNK_SIZE-1){chunk_y++;player.y=0;loadChunk(chunk_x,chunk_y);}
+    if(y===0 && chunk_y>0){chunk_y--;player.y=CHUNK_SIZE-1;loadChunk(chunk_x,chunk_y);}
+    drawWorld();
+    logMessage(`Moved to ${world_chunk[`${x},${y}`].biome} biome`);
 }
-
-function logMessage(msg){
-    const log = document.getElementById('log');
-    const p = document.createElement('p');
-    p.textContent = msg;
-    log.prepend(p);
-}
-
-// --- Actions ---
 
 async function gather(){
-    const biome = world[player.y][player.x].biome;
-    const res = await fetch(`/gather?x=${player.x}&y=${player.y}&biome=${biome}`);
-    const data = await res.json().catch(()=>({item:"Element",rarity:"common",effect:"glow"}));
+    const res = await fetch(`/gather?player_id=${player.id}&cx=${chunk_x}&cy=${chunk_y}&x=${player.x}&y=${player.y}`);
+    const data = await res.json();
     player.inventory.push(data.item);
-    if(data.effect) world[player.y][player.x].effect = data.effect;
-    drawPlayer();
+    if(data.effect) world_chunk[`${player.x},${player.y}`].effect = data.effect;
+    drawWorld();
     logMessage(`Gathered: ${data.item} (${data.rarity})`);
 }
 
 async function craft(){
-    const res = await fetch(`/craft?inventory=${player.inventory.join(',')}`);
-    const data = await res.json().catch(()=>({item:"Potion",rarity:"rare",new_tiles:[{x:Math.floor(Math.random()*size),y:Math.floor(Math.random()*size),biome:'forest',effect:'glow'}]}));
+    const res = await fetch(`/craft?player_id=${player.id}`);
+    const data = await res.json();
     if(data.item) logMessage(`Crafted: ${data.item} (${data.rarity})`);
     if(data.new_tiles) data.new_tiles.forEach(t=>{
-        world[t.y][t.x] = {biome:t.biome,effect:t.effect};
+        world_chunk[`${t.x},${t.y}`] = {biome:t.biome,effect:t.effect};
     });
     player.inventory = [];
-    drawPlayer();
+    drawWorld();
 }
 
-// --- Initialize ---
-initWorld();
+loadChunk(chunk_x,chunk_y);
 </script>
 </body>
 </html>
