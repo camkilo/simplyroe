@@ -465,25 +465,32 @@ async def share_page(share_id: str):
         if not npc:
             return HTMLResponse("<h1>NPC not found</h1>", status_code=404)
         
+        # HTML escape user content to prevent XSS
+        import html
+        safe_name = html.escape(npc['name'])
+        safe_trait = html.escape(npc['trait'])
+        safe_backstory = html.escape(npc['backstory'])
+        safe_npc_id = html.escape(npc['id'])
+        
         # Simple share page with OG meta tags
-        html = f"""
+        html_content = f"""
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
-    <title>{npc['name']} - Realm of Echoes</title>
+    <title>{safe_name} - Realm of Echoes</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="{npc['name']} - {npc['trait']}">
-    <meta property="og:description" content="{npc['backstory'][:200]}">
+    <meta property="og:title" content="{safe_name} - {safe_trait}">
+    <meta property="og:description" content="{safe_backstory[:200]}">
     <meta property="og:image" content="/api/share/{share_id}/image">
     
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{npc['name']} - {npc['trait']}">
-    <meta name="twitter:description" content="{npc['backstory'][:200]}">
+    <meta name="twitter:title" content="{safe_name} - {safe_trait}">
+    <meta name="twitter:description" content="{safe_backstory[:200]}">
     <meta name="twitter:image" content="/api/share/{share_id}/image">
     
     <style>
@@ -544,12 +551,12 @@ async def share_page(share_id: str):
 </head>
 <body>
     <div class="container">
-        <h1>{npc['name']}</h1>
-        <div class="trait">• {npc['trait'].upper()} •</div>
-        <div class="backstory">{npc['backstory']}</div>
+        <h1>{safe_name}</h1>
+        <div class="trait">• {safe_trait.upper()} •</div>
+        <div class="backstory">{safe_backstory}</div>
         
         <div class="actions">
-            <button onclick="window.location.href='/api/npcs/{npc['id']}'">View Full NPC</button>
+            <button onclick="window.location.href='/api/npcs/{safe_npc_id}'">View Full NPC</button>
             <button class="secondary" onclick="window.location.href='/'">Create Your Own</button>
         </div>
         
@@ -561,9 +568,10 @@ async def share_page(share_id: str):
 </body>
 </html>
         """
-        return HTMLResponse(html)
+        return HTMLResponse(html_content)
     except Exception as e:
-        return HTMLResponse(f"<h1>Error loading share</h1><p>{str(e)}</p>", status_code=500)
+        # Don't expose stack trace details to users
+        return HTMLResponse("<h1>Error loading share</h1><p>An error occurred while loading this share.</p>", status_code=500)
 
 if __name__ == "__main__":
     print("🌍 Starting Realm of Echoes - Living World API...")
