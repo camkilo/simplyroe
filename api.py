@@ -31,6 +31,10 @@ from leaderboard import (
     get_weekly_leaderboard, get_most_remixed_npcs,
     get_trending_npcs, update_user_reputation, get_global_stats
 )
+from moderation import (
+    check_rate_limit, validate_npc_content, validate_message,
+    get_user_rate_limit_status, report_content
+)
 
 app = FastAPI(title="Realm of Echoes - Living World API")
 
@@ -139,6 +143,16 @@ async def get_me(authorization: Optional[str] = Header(None)):
 async def api_create_npc(req: CreateNPCRequest, authorization: Optional[str] = Header(None)):
     user = get_current_user(authorization)
     
+    # Check rate limit
+    allowed, error = check_rate_limit(user["id"], "npc_create")
+    if not allowed:
+        raise HTTPException(status_code=429, detail=error)
+    
+    # Validate content
+    valid, error = validate_npc_content(req.name or "", req.trait or "", req.backstory or "")
+    if not valid:
+        raise HTTPException(status_code=400, detail=error)
+    
     npc = create_npc(
         creator_id=user["id"],
         name=req.name,
@@ -169,6 +183,17 @@ async def api_get_npc(npc_id: str):
 @app.post("/api/npcs/remix")
 async def api_remix_npc(req: RemixNPCRequest, authorization: Optional[str] = Header(None)):
     user = get_current_user(authorization)
+    
+    # Check rate limit
+    allowed, error = check_rate_limit(user["id"], "npc_remix")
+    if not allowed:
+        raise HTTPException(status_code=429, detail=error)
+    
+    # Validate content if provided
+    if req.name or req.trait or req.backstory:
+        valid, error = validate_npc_content(req.name or "", req.trait or "", req.backstory or "")
+        if not valid:
+            raise HTTPException(status_code=400, detail=error)
     
     changes = {}
     if req.name:
@@ -256,6 +281,16 @@ async def api_leave_room(room_id: str, authorization: Optional[str] = Header(Non
 @app.post("/api/rooms/{room_id}/chat")
 async def api_room_chat(room_id: str, req: ChatMessageRequest, authorization: Optional[str] = Header(None)):
     user = get_current_user(authorization)
+    
+    # Check rate limit
+    allowed, error = check_rate_limit(user["id"], "chat_message")
+    if not allowed:
+        raise HTTPException(status_code=429, detail=error)
+    
+    # Validate message
+    valid, error = validate_message(req.message)
+    if not valid:
+        raise HTTPException(status_code=400, detail=error)
     
     success = add_chat_message(room_id, user["id"], req.message)
     
@@ -391,6 +426,14 @@ async def api_get_most_remixed(limit: int = 10):
 async def api_get_stats():
     stats = get_global_stats()
     return {"stats": stats}
+
+# ===== Moderation Endpoints =====
+
+@app.get("/api/moderation/rate-limits")
+async def api_get_rate_limits(authorization: Optional[str] = Header(None)):
+    user = get_current_user(authorization)
+    status = get_user_rate_limit_status(user["id"])
+    return {"rate_limits": status}
 
 # ===== Health Check =====
 
