@@ -5,6 +5,7 @@
 
 ## 🌟 Core Features
 
+- **3D FPS Mode**: Immersive first-person 3D open world with amazing graphics (NEW!)
 - **AI-Driven NPC Generation**: Create NPCs with unique names, traits, and 3-line backstories
 - **Remix & Provenance**: Full lineage tracking for every creation with attribution
 - **Social Sharing**: Share NPCs with auto-generated OG images and shareable links
@@ -27,15 +28,17 @@ python api.py
 ```
 
 Visit:
-- **App**: http://localhost:8000
+- **3D FPS Mode**: http://localhost:8000 (default)
+- **Classic 2D Mode**: http://localhost:8000/index.html
 - **API Docs**: http://localhost:8000/docs
 - **Health Check**: http://localhost:8000/api/health
 
 ### First Steps
-1. Register an account at http://localhost:8000
-2. Create your first NPC
-3. Share it with the community
-4. Remix other players' creations
+1. Visit http://localhost:8000 for the **3D FPS Experience**
+2. Click to lock mouse pointer and start playing
+3. Use WASD to move, mouse to look, E to gather, Left Click to attack
+4. Or visit http://localhost:8000/index.html for the classic 2D experience
+5. Create NPCs and explore the world!
 
 ## 📚 API Endpoints
 
@@ -71,11 +74,14 @@ Visit:
 
 ```
 Backend: FastAPI (Python)
-Frontend: Vanilla JS + HTML/CSS (embedded)
+Frontend: 
+  - 3D FPS: Three.js + WebGL 2.0 (default)
+  - Classic: Vanilla JS + HTML/CSS
 Storage: JSON files (PostgreSQL-ready)
 Auth: JWT with bcrypt
 Images: PIL for OG image generation
 Real-time: WebSocket support (foundation ready)
+Graphics: PBR materials, particle effects, dynamic lighting
 ```
 
 ## 📁 Project Structure
@@ -88,7 +94,15 @@ Real-time: WebSocket support (foundation ready)
 ├── rooms.py              # Play session management
 ├── sharing.py            # Social sharing & OG images
 ├── leaderboard.py        # Rankings & reputation
-├── frontend.html         # Web UI
+├── main.py               # Server entry point
+├── frontend.html         # Classic web UI
+├── static/
+│   ├── fps3d.html       # 3D FPS interface (NEW)
+│   ├── inventory-icons.js # Inventory art system (NEW)
+│   └── index.html       # 2D world interface
+├── docs/
+│   ├── 3D_FPS_MODE.md   # 3D FPS documentation (NEW)
+│   └── vision.md        # Core vision document
 ├── requirements.txt      # Python dependencies
 └── .data/               # Data storage (auto-created)
     ├── users.json
