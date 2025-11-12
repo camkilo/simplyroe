@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import json, os, random
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from actions import attack, flee, encounter_enemy, gather
+from actions import attack, flee, encounter, gather
 from game_state import player_state
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -58,7 +58,7 @@ def do_action(action_name: str):
     elif action_name == "flee":
         return {"result": flee()}
     elif action_name == "encounter":
-        return {"result": encounter_enemy()}
+        return {"result": encounter()}
     elif action_name == "gather":
         return {"result": gather()}
     return {"result": "Unknown action"}
