@@ -470,7 +470,7 @@
         scene.add(spotLight.target);
         
         // Controls
-        const controls = new PointerLockControls(camera, document.body);
+        const controls = new PointerLockControls(camera, canvas);
         
         const moveState = {
             forward: false,

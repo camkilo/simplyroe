@@ -3,6 +3,7 @@
 
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict
@@ -45,6 +46,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files directory
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Pydantic models for requests
 class RegisterRequest(BaseModel):
@@ -445,13 +449,23 @@ async def health_check():
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    """Serve the main application HTML"""
+    """Serve the 3D FPS application HTML"""
+    html_file = "static/fps3d.html"
+    if os.path.exists(html_file):
+        with open(html_file, "r") as f:
+            return HTMLResponse(f.read())
+    else:
+        return HTMLResponse("<h1>Realm of Echoes - API Running</h1><p>3D FPS mode not found. Use /docs for API documentation.</p>")
+
+@app.get("/index.html", response_class=HTMLResponse)
+async def classic_frontend():
+    """Serve the classic 2D frontend"""
     html_file = "frontend.html"
     if os.path.exists(html_file):
         with open(html_file, "r") as f:
             return HTMLResponse(f.read())
     else:
-        return HTMLResponse("<h1>Realm of Echoes - API Running</h1><p>Frontend not deployed yet. Use /docs for API documentation.</p>")
+        return HTMLResponse("<h1>Classic frontend not found</h1>")
 
 # Share page for social sharing
 @app.get("/share/{share_id}", response_class=HTMLResponse)
