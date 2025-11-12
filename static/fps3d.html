@@ -377,6 +377,9 @@
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
         
+        // Detect mobile for performance optimization
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
         // Game State
         const gameState = {
             health: 100,
@@ -400,9 +403,6 @@
         camera.position.set(0, 1.6, 0);
         
         const canvas = document.getElementById('gameCanvas');
-        
-        // Detect mobile for performance optimization
-        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         const renderer = new THREE.WebGLRenderer({ 
             canvas, 
