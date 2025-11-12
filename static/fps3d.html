@@ -1174,7 +1174,12 @@
                 
                 direction.z = Number(moveState.forward) - Number(moveState.backward);
                 direction.x = Number(moveState.right) - Number(moveState.left);
-                direction.normalize();
+                
+                // Only normalize if the direction vector is not zero
+                const directionLength = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
+                if (directionLength > 0) {
+                    direction.normalize();
+                }
                 
                 const speed = moveState.sprint ? 30 : 15;
                 
@@ -1201,10 +1206,10 @@
                 
                 // Enemy AI - simple follow player
                 gameState.enemies.forEach(enemy => {
-                    const direction = new THREE.Vector3();
-                    direction.subVectors(camera.position, enemy.position).normalize();
-                    enemy.position.x += direction.x * delta * 2;
-                    enemy.position.z += direction.z * delta * 2;
+                    const enemyDirection = new THREE.Vector3();
+                    enemyDirection.subVectors(camera.position, enemy.position).normalize();
+                    enemy.position.x += enemyDirection.x * delta * 2;
+                    enemy.position.z += enemyDirection.z * delta * 2;
                     
                     // Attack player if close
                     const distance = enemy.position.distanceTo(camera.position);
