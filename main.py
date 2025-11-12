@@ -739,7 +739,12 @@ if(playerId){
 
 @app.get("/", response_class=HTMLResponse)
 def index():
-    return HTMLResponse(INDEX_HTML)
+    # Serve the 3D FPS interface
+    try:
+        with open("static/fps3d.html", "r") as f:
+            return HTMLResponse(f.read())
+    except:
+        return HTMLResponse(INDEX_HTML)
 
 # --- run server (if executed directly) ---
 if __name__ == "__main__":

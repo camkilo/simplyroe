@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realm of Echoes - 3D FPS</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background: #000;
+        }
+        
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            color: white;
+            font-size: 16px;
+        }
+        
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+        }
+        
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        
+        #crosshair::before {
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            transform: translateY(-50%);
+        }
+        
+        #crosshair::after {
+            left: 50%;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            transform: translateX(-50%);
+        }
+        
+        #stats {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #00ffff;
+        }
+        
+        #inventory {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #00ffff;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .inventory-slot {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .inventory-slot.active {
+            border-color: #ffff00;
+            box-shadow: 0 0 15px #ffff00;
+        }
+        
+        .inventory-slot .count {
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #00ffff;
+            font-size: 14px;
+        }
+        
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+        
+        #loading.hidden {
+            display: none;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 255, 255, 0.1);
+            border-top: 4px solid #00ffff;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 8px;
+            border: 2px solid #00ffff;
+            display: none;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        #message.show {
+            display: block;
+        }
+        
+        button {
+            pointer-events: auto;
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background: #00cccc;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="loading">
+        <div class="spinner"></div>
+        <div style="color: #00ffff; font-size: 24px;">Loading Realm of Echoes...</div>
+        <div style="color: #888; margin-top: 10px;">Initializing 3D World</div>
+    </div>
+    
+    <div id="hud">
+        <div id="crosshair"></div>
+        
+        <div id="stats">
+            <div><strong>REALM OF ECHOES - 3D FPS</strong></div>
+            <div style="margin-top: 10px;">Health: <span id="health">100</span></div>
+            <div>Location: <span id="location">Forest</span></div>
+            <div>Biome: <span id="biome">plains</span></div>
+            <div>Position: <span id="position">0, 0, 0</span></div>
+            <div>XP: <span id="xp">0</span></div>
+        </div>
+        
+        <div id="controls">
+            <div><strong>CONTROLS</strong></div>
+            <div style="margin-top: 10px;">WASD - Move</div>
+            <div>Mouse - Look</div>
+            <div>Left Click - Interact/Attack</div>
+            <div>E - Gather Resources</div>
+            <div>Q - Craft</div>
+            <div>1-5 - Select Item</div>
+            <div>Space - Jump</div>
+            <div>Shift - Sprint</div>
+            <div>ESC - Pause</div>
+        </div>
+        
+        <div id="inventory">
+            <div class="inventory-slot active" data-slot="0"><span>Empty</span></div>
+            <div class="inventory-slot" data-slot="1"><span>Empty</span></div>
+            <div class="inventory-slot" data-slot="2"><span>Empty</span></div>
+            <div class="inventory-slot" data-slot="3"><span>Empty</span></div>
+            <div class="inventory-slot" data-slot="4"><span>Empty</span></div>
+        </div>
+        
+        <div id="message">
+            <div id="messageText"></div>
+            <button onclick="closeMessage()">OK</button>
+        </div>
+    </div>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+        
+        // Game State
+        const gameState = {
+            health: 100,
+            xp: 0,
+            inventory: [],
+            activeSlot: 0,
+            location: 'Forest',
+            position: { x: 0, y: 1.6, z: 0 },
+            enemies: [],
+            resources: []
+        };
+        
+        // Scene Setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb); // Sky blue
+        scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 1.6, 0);
+        
+        const canvas = document.getElementById('gameCanvas');
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(50, 100, 50);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 500;
+        dirLight.shadow.camera.left = -100;
+        dirLight.shadow.camera.right = 100;
+        dirLight.shadow.camera.top = 100;
+        dirLight.shadow.camera.bottom = -100;
+        scene.add(dirLight);
+        
+        // Controls
+        const controls = new PointerLockControls(camera, document.body);
+        
+        const moveState = {
+            forward: false,
+            backward: false,
+            left: false,
+            right: false,
+            jump: false,
+            sprint: false,
+            canJump: true
+        };
+        
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        
+        // Biome colors and properties
+        const biomes = {
+            forest: { color: 0x228b22, roughness: 0.9 },
+            plains: { color: 0x90ee90, roughness: 0.8 },
+            desert: { color: 0xdaa520, roughness: 0.7 },
+            water: { color: 0x4682b4, roughness: 0.1 },
+            mountain: { color: 0x808080, roughness: 0.95 },
+            ice: { color: 0xe0ffff, roughness: 0.2 },
+            lava: { color: 0xff4500, roughness: 0.3 },
+            swamp: { color: 0x556b2f, roughness: 0.85 }
+        };
+        
+        // Generate procedural world
+        function generateWorld() {
+            const worldSize = 100;
+            const chunkSize = 10;
+            
+            // Ground plane with varied heights
+            for (let x = -worldSize; x < worldSize; x += chunkSize) {
+                for (let z = -worldSize; z < worldSize; z += chunkSize) {
+                    // Determine biome based on position
+                    const biomeType = getBiomeAt(x, z);
+                    const biome = biomes[biomeType];
+                    
+                    // Create ground chunk
+                    const height = getHeightAt(x, z, biomeType);
+                    const geometry = new THREE.BoxGeometry(chunkSize, height, chunkSize);
+                    const material = new THREE.MeshStandardMaterial({
+                        color: biome.color,
+                        roughness: biome.roughness,
+                        metalness: 0.1
+                    });
+                    const mesh = new THREE.Mesh(geometry, material);
+                    mesh.position.set(x + chunkSize/2, height/2 - 1, z + chunkSize/2);
+                    mesh.receiveShadow = true;
+                    mesh.castShadow = true;
+                    mesh.userData = { biome: biomeType };
+                    scene.add(mesh);
+                    
+                    // Add resources/vegetation
+                    if (Math.random() > 0.7 && biomeType !== 'water' && biomeType !== 'lava') {
+                        addResource(x + Math.random() * chunkSize, height, z + Math.random() * chunkSize, biomeType);
+                    }
+                    
+                    // Add enemies occasionally
+                    if (Math.random() > 0.95 && biomeType !== 'water') {
+                        addEnemy(x + Math.random() * chunkSize, height, z + Math.random() * chunkSize);
+                    }
+                }
+            }
+        }
+        
+        function getBiomeAt(x, z) {
+            const biomeKeys = Object.keys(biomes);
+            const seed = Math.sin(x * 0.01) * Math.cos(z * 0.01);
+            const index = Math.floor((seed + 1) * 0.5 * biomeKeys.length) % biomeKeys.length;
+            return biomeKeys[index];
+        }
+        
+        function getHeightAt(x, z, biomeType) {
+            if (biomeType === 'water') return 0.2;
+            if (biomeType === 'mountain') return 2 + Math.abs(Math.sin(x * 0.1)) * 3;
+            return 1 + Math.sin(x * 0.05) * 0.5 + Math.cos(z * 0.05) * 0.5;
+        }
+        
+        function addResource(x, y, z, biomeType) {
+            const resourceTypes = {
+                forest: ['Wood', 'Herbs'],
+                plains: ['Herbs', 'Stone'],
+                desert: ['Stone', 'Copper'],
+                mountain: ['Iron', 'Stone'],
+                ice: ['Crystal', 'Ice'],
+                swamp: ['Herbs', 'Mud']
+            };
+            
+            const resources = resourceTypes[biomeType] || ['Stone'];
+            const resourceType = resources[Math.floor(Math.random() * resources.length)];
+            
+            // Create simple 3D representation
+            const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const colorMap = {
+                Wood: 0x8b4513,
+                Herbs: 0x32cd32,
+                Stone: 0x808080,
+                Copper: 0xb87333,
+                Iron: 0x708090,
+                Crystal: 0x00ffff,
+                Ice: 0xe0ffff,
+                Mud: 0x654321
+            };
+            const material = new THREE.MeshStandardMaterial({
+                color: colorMap[resourceType] || 0xffffff,
+                roughness: 0.8,
+                metalness: resourceType === 'Iron' || resourceType === 'Copper' ? 0.7 : 0.2
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, y + 0.5, z);
+            mesh.castShadow = true;
+            mesh.userData = { type: 'resource', resourceType };
+            scene.add(mesh);
+            gameState.resources.push(mesh);
+        }
+        
+        function addEnemy(x, y, z) {
+            // Create simple enemy representation (will be replaced with better models)
+            const geometry = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xff0000,
+                roughness: 0.7,
+                emissive: 0x330000
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, y + 1, z);
+            mesh.castShadow = true;
+            mesh.userData = { type: 'enemy', health: 30, name: 'Enemy' };
+            scene.add(mesh);
+            gameState.enemies.push(mesh);
+        }
+        
+        // Input handling
+        document.addEventListener('keydown', (e) => {
+            switch(e.code) {
+                case 'KeyW': moveState.forward = true; break;
+                case 'KeyS': moveState.backward = true; break;
+                case 'KeyA': moveState.left = true; break;
+                case 'KeyD': moveState.right = true; break;
+                case 'Space': if (moveState.canJump) moveState.jump = true; break;
+                case 'ShiftLeft': moveState.sprint = true; break;
+                case 'KeyE': gatherResource(); break;
+                case 'KeyQ': craft(); break;
+                case 'Digit1': selectSlot(0); break;
+                case 'Digit2': selectSlot(1); break;
+                case 'Digit3': selectSlot(2); break;
+                case 'Digit4': selectSlot(3); break;
+                case 'Digit5': selectSlot(4); break;
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            switch(e.code) {
+                case 'KeyW': moveState.forward = false; break;
+                case 'KeyS': moveState.backward = false; break;
+                case 'KeyA': moveState.left = false; break;
+                case 'KeyD': moveState.right = false; break;
+                case 'ShiftLeft': moveState.sprint = false; break;
+            }
+        });
+        
+        canvas.addEventListener('click', () => {
+            if (!controls.isLocked) {
+                controls.lock();
+            } else {
+                attack();
+            }
+        });
+        
+        // Game actions
+        function gatherResource() {
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            
+            const intersects = raycaster.intersectObjects(gameState.resources);
+            
+            if (intersects.length > 0 && intersects[0].distance < 5) {
+                const resource = intersects[0].object;
+                const resourceType = resource.userData.resourceType;
+                
+                // Add to inventory
+                gameState.inventory.push(resourceType);
+                gameState.xp += 5;
+                
+                // Remove from scene
+                scene.remove(resource);
+                gameState.resources = gameState.resources.filter(r => r !== resource);
+                
+                showMessage(`Gathered ${resourceType}! +5 XP`);
+                updateHUD();
+            }
+        }
+        
+        function attack() {
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            
+            const intersects = raycaster.intersectObjects(gameState.enemies);
+            
+            if (intersects.length > 0 && intersects[0].distance < 10) {
+                const enemy = intersects[0].object;
+                const damage = 10 + Math.floor(Math.random() * 10);
+                enemy.userData.health -= damage;
+                
+                // Visual feedback
+                enemy.material.emissive.setHex(0xff0000);
+                setTimeout(() => enemy.material.emissive.setHex(0x330000), 100);
+                
+                if (enemy.userData.health <= 0) {
+                    scene.remove(enemy);
+                    gameState.enemies = gameState.enemies.filter(e => e !== enemy);
+                    gameState.xp += 10;
+                    
+                    // Drop loot
+                    const loot = ['Iron', 'Copper', 'Bone', 'Leather'][Math.floor(Math.random() * 4)];
+                    gameState.inventory.push(loot);
+                    
+                    showMessage(`Defeated ${enemy.userData.name}! Looted ${loot}. +10 XP`);
+                    updateHUD();
+                }
+            }
+        }
+        
+        function craft() {
+            if (gameState.inventory.length < 2) {
+                showMessage('Need at least 2 items to craft!');
+                return;
+            }
+            
+            const items = gameState.inventory.splice(0, 2);
+            const craftedItem = `${items[0]}-${items[1]} Artifact`;
+            gameState.inventory.push(craftedItem);
+            gameState.xp += 30;
+            
+            showMessage(`Crafted: ${craftedItem}! +30 XP`);
+            updateHUD();
+        }
+        
+        function selectSlot(slot) {
+            gameState.activeSlot = slot;
+            document.querySelectorAll('.inventory-slot').forEach((el, i) => {
+                el.classList.toggle('active', i === slot);
+            });
+        }
+        
+        function showMessage(text) {
+            document.getElementById('messageText').textContent = text;
+            document.getElementById('message').classList.add('show');
+            setTimeout(() => {
+                document.getElementById('message').classList.remove('show');
+            }, 3000);
+        }
+        
+        function closeMessage() {
+            document.getElementById('message').classList.remove('show');
+        }
+        
+        function updateHUD() {
+            document.getElementById('health').textContent = gameState.health;
+            document.getElementById('xp').textContent = gameState.xp;
+            document.getElementById('position').textContent = 
+                `${Math.floor(camera.position.x)}, ${Math.floor(camera.position.y)}, ${Math.floor(camera.position.z)}`;
+            
+            // Update inventory display
+            document.querySelectorAll('.inventory-slot').forEach((slot, i) => {
+                const item = gameState.inventory[i];
+                if (item) {
+                    slot.innerHTML = `<span>${item.substring(0, 8)}</span>`;
+                } else {
+                    slot.innerHTML = '<span>Empty</span>';
+                }
+            });
+            
+            // Update biome
+            const raycaster = new THREE.Raycaster(camera.position, new THREE.Vector3(0, -1, 0));
+            const intersects = raycaster.intersectObjects(scene.children);
+            if (intersects.length > 0 && intersects[0].object.userData.biome) {
+                document.getElementById('biome').textContent = intersects[0].object.userData.biome;
+            }
+        }
+        
+        // Animation loop
+        const clock = new THREE.Clock();
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const delta = clock.getDelta();
+            
+            if (controls.isLocked) {
+                // Physics
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+                velocity.y -= 9.8 * 3 * delta; // Gravity
+                
+                direction.z = Number(moveState.forward) - Number(moveState.backward);
+                direction.x = Number(moveState.right) - Number(moveState.left);
+                direction.normalize();
+                
+                const speed = moveState.sprint ? 30 : 15;
+                
+                if (moveState.forward || moveState.backward) velocity.z -= direction.z * speed * delta;
+                if (moveState.left || moveState.right) velocity.x -= direction.x * speed * delta;
+                
+                if (moveState.jump) {
+                    velocity.y = 10;
+                    moveState.jump = false;
+                    moveState.canJump = false;
+                }
+                
+                controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+                
+                camera.position.y += velocity.y * delta;
+                
+                // Ground collision
+                if (camera.position.y < 1.6) {
+                    camera.position.y = 1.6;
+                    velocity.y = 0;
+                    moveState.canJump = true;
+                }
+                
+                // Enemy AI - simple follow player
+                gameState.enemies.forEach(enemy => {
+                    const direction = new THREE.Vector3();
+                    direction.subVectors(camera.position, enemy.position).normalize();
+                    enemy.position.x += direction.x * delta * 2;
+                    enemy.position.z += direction.z * delta * 2;
+                    
+                    // Attack player if close
+                    const distance = enemy.position.distanceTo(camera.position);
+                    if (distance < 2 && Math.random() > 0.98) {
+                        gameState.health -= 5;
+                        if (gameState.health <= 0) {
+                            showMessage('You died! Game Over.');
+                            gameState.health = 100;
+                            camera.position.set(0, 1.6, 0);
+                        }
+                        updateHUD();
+                    }
+                });
+                
+                updateHUD();
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Initialize
+        generateWorld();
+        document.getElementById('loading').classList.add('hidden');
+        animate();
+        
+        // Show instructions
+        setTimeout(() => {
+            showMessage('Welcome to Realm of Echoes 3D! Click to start. Use WASD to move, mouse to look, E to gather, Left Click to attack!');
+        }, 500);
+    </script>
+</body>
+</html>
