@@ -1,3 +1,10 @@
 fastapi
-uvicorn
-pydantic
+uvicorn[standard]
+pydantic[email]
+python-multipart
+passlib[bcrypt]
+python-jose[cryptography]
+websockets
+redis
+pillow
+httpx
