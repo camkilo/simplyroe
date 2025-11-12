@@ -471,6 +471,7 @@ async def share_page(share_id: str):
         safe_trait = html.escape(npc['trait'])
         safe_backstory = html.escape(npc['backstory'])
         safe_npc_id = html.escape(npc['id'])
+        safe_share_id = html.escape(share_id)
         
         # Simple share page with OG meta tags
         html_content = f"""
@@ -485,13 +486,13 @@ async def share_page(share_id: str):
     <meta property="og:type" content="website">
     <meta property="og:title" content="{safe_name} - {safe_trait}">
     <meta property="og:description" content="{safe_backstory[:200]}">
-    <meta property="og:image" content="/api/share/{share_id}/image">
+    <meta property="og:image" content="/api/share/{safe_share_id}/image">
     
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{safe_name} - {safe_trait}">
     <meta name="twitter:description" content="{safe_backstory[:200]}">
-    <meta name="twitter:image" content="/api/share/{share_id}/image">
+    <meta name="twitter:image" content="/api/share/{safe_share_id}/image">
     
     <style>
         body {{
