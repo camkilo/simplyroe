@@ -35,10 +35,15 @@ Visit:
 
 ### First Steps
 1. Visit http://localhost:8000 for the **3D FPS Experience**
-2. Click to lock mouse pointer and start playing
-3. Use WASD to move, mouse to look, E to gather, Left Click to attack
-4. Or visit http://localhost:8000/index.html for the classic 2D experience
-5. Create NPCs and explore the world!
+2. **Desktop**: Click to lock mouse pointer and start playing
+3. **Desktop Controls**: Use WASD to move, mouse to look, E to gather, Left Click to attack
+4. **Mobile Controls**: 
+   - Touch joystick (bottom-left) to move
+   - Drag right side of screen to look around
+   - Tap screen to interact/attack
+   - Use action buttons (bottom-right) for jump and gather
+5. Or visit http://localhost:8000/index.html for the classic 2D experience
+6. Create NPCs and explore the world!
 
 ## 📚 API Endpoints
 
@@ -120,12 +125,24 @@ Graphics: PBR materials, particle effects, dynamic lighting
 4. **Share** → Generate shareable links with auto-generated social previews
 5. **Compete** → Climb leaderboards through remixes and shares
 
+## 📱 Mobile Support
+
+The 3D FPS mode now includes full mobile support with touch-based controls:
+
+- **Virtual Joystick**: On-screen joystick (bottom-left) for character movement
+- **Touch Camera**: Drag right side of screen to look around
+- **Tap to Interact**: Tap screen to attack or interact with objects
+- **Action Buttons**: Quick access buttons for jump and gather (bottom-right)
+- **Optimized Performance**: Automatic quality adjustments for mobile devices
+
 ## 🔮 Next-Gen Features
 
 - **Generative Collaborators**: NPCs with AI-driven dialogue (foundation ready)
 - **Player-Owned Economy**: Reputation and provenance tracking
 - **Remixability**: One-click remix with full attribution
 - **Micro-Sessions**: 2-10 minute gameplay loops
+- **Next-Gen Graphics**: PBR materials, advanced lighting, particle effects
+- **Mobile-First**: Touch controls and performance optimization
 
 ## 🛠️ Development
 
@@ -144,7 +161,8 @@ curl http://localhost:8000/api/stats
 - [ ] Image generation for cosmetics
 - [ ] Voice chat (WebRTC)
 - [ ] Content moderation AI
-- [ ] Mobile-optimized UI
+- [x] Mobile-optimized UI with touch controls
+- [x] Next-gen graphics with PBR materials
 
 ## 📖 Documentation
 
