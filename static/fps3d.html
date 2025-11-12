@@ -126,6 +126,111 @@
             font-size: 14px;
         }
         
+        /* Mobile Joystick Controls */
+        .mobile-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        @media (max-width: 768px), (pointer: coarse) {
+            .mobile-controls {
+                display: block;
+            }
+            
+            #controls {
+                display: none;
+            }
+        }
+        
+        .joystick-zone {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 150px;
+            height: 150px;
+            pointer-events: auto;
+        }
+        
+        .joystick-base {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.2), rgba(0, 255, 255, 0.05));
+            border: 3px solid rgba(0, 255, 255, 0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .joystick-stick {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.8), rgba(0, 255, 255, 0.4));
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+            transform: translate(-50%, -50%);
+            left: 50%;
+            top: 50%;
+            transition: all 0.1s ease-out;
+        }
+        
+        .action-buttons {
+            position: absolute;
+            bottom: 60px;
+            right: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            pointer-events: auto;
+        }
+        
+        .action-button {
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.3), rgba(0, 255, 255, 0.1));
+            border: 3px solid rgba(0, 255, 255, 0.6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #00ffff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        
+        .action-button:active {
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.6), rgba(0, 255, 255, 0.3));
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+            transform: scale(0.9);
+        }
+        
+        .mobile-info {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 2px solid #00ffff;
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            pointer-events: auto;
+        }
+        
         #loading {
             position: fixed;
             top: 0;
@@ -243,6 +348,22 @@
         </div>
     </div>
     
+    <!-- Mobile Controls -->
+    <div class="mobile-controls">
+        <div class="mobile-info">
+            Touch joystick to move • Tap screen to interact/attack • Buttons: Jump & Gather
+        </div>
+        <div class="joystick-zone" id="joystickZone">
+            <div class="joystick-base">
+                <div class="joystick-stick" id="joystickStick"></div>
+            </div>
+        </div>
+        <div class="action-buttons">
+            <div class="action-button" id="jumpButton">↑</div>
+            <div class="action-button" id="gatherButton">E</div>
+        </div>
+    </div>
+    
     <script type="importmap">
     {
         "imports": {
@@ -277,16 +398,25 @@
         camera.position.set(0, 1.6, 0);
         
         const canvas = document.getElementById('gameCanvas');
-        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        const renderer = new THREE.WebGLRenderer({ 
+            canvas, 
+            antialias: true,
+            powerPreference: 'high-performance'
+        });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        renderer.outputEncoding = THREE.sRGBEncoding;
         
-        // Lighting - Enhanced for better graphics
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        // Lighting - Enhanced for next-gen graphics with advanced shadows and colors
+        const ambientLight = new THREE.AmbientLight(0xb8d4ff, 0.5);
         scene.add(ambientLight);
         
-        const dirLight = new THREE.DirectionalLight(0xffeebb, 1.2);
+        // Primary directional light (sun)
+        const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.5);
         dirLight.position.set(50, 100, 50);
         dirLight.castShadow = true;
         dirLight.shadow.mapSize.width = 4096;
@@ -297,22 +427,39 @@
         dirLight.shadow.camera.right = 100;
         dirLight.shadow.camera.top = 100;
         dirLight.shadow.camera.bottom = -100;
-        dirLight.shadow.bias = -0.0001;
+        dirLight.shadow.bias = -0.00005;
+        dirLight.shadow.normalBias = 0.02;
         scene.add(dirLight);
         
-        // Add hemisphere light for natural sky lighting
-        const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x8b7355, 0.6);
+        // Add hemisphere light for natural sky lighting (enhanced)
+        const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0xc4915f, 0.7);
         hemiLight.position.set(0, 50, 0);
         scene.add(hemiLight);
         
-        // Add point lights for dramatic effect
-        const pointLight1 = new THREE.PointLight(0xffaa00, 0.5, 50);
-        pointLight1.position.set(20, 5, 20);
+        // Add point lights for dramatic effect (more realistic)
+        const pointLight1 = new THREE.PointLight(0xffaa33, 1.2, 60);
+        pointLight1.position.set(20, 8, 20);
+        pointLight1.castShadow = true;
+        pointLight1.shadow.mapSize.width = 1024;
+        pointLight1.shadow.mapSize.height = 1024;
         scene.add(pointLight1);
         
-        const pointLight2 = new THREE.PointLight(0x00aaff, 0.5, 50);
-        pointLight2.position.set(-20, 5, -20);
+        const pointLight2 = new THREE.PointLight(0x33aaff, 1.0, 50);
+        pointLight2.position.set(-20, 6, -20);
+        pointLight2.castShadow = true;
+        pointLight2.shadow.mapSize.width = 1024;
+        pointLight2.shadow.mapSize.height = 1024;
         scene.add(pointLight2);
+        
+        // Add spotlight for focused dramatic lighting
+        const spotLight = new THREE.SpotLight(0xffffff, 1.5, 100, Math.PI / 6, 0.3, 1);
+        spotLight.position.set(-30, 40, 30);
+        spotLight.target.position.set(0, 0, 0);
+        spotLight.castShadow = true;
+        spotLight.shadow.mapSize.width = 2048;
+        spotLight.shadow.mapSize.height = 2048;
+        scene.add(spotLight);
+        scene.add(spotLight.target);
         
         // Controls
         const controls = new PointerLockControls(camera, document.body);
@@ -330,16 +477,68 @@
         const velocity = new THREE.Vector3();
         const direction = new THREE.Vector3();
         
-        // Biome colors and properties - Enhanced with better materials
+        // Biome colors and properties - Enhanced with better materials and PBR
         const biomes = {
-            forest: { color: 0x228b22, roughness: 0.9, metalness: 0.0, emissive: 0x001100 },
-            plains: { color: 0x90ee90, roughness: 0.8, metalness: 0.0, emissive: 0x002200 },
-            desert: { color: 0xdaa520, roughness: 0.7, metalness: 0.1, emissive: 0x221100 },
-            water: { color: 0x4682b4, roughness: 0.1, metalness: 0.8, emissive: 0x001122 },
-            mountain: { color: 0x808080, roughness: 0.95, metalness: 0.2, emissive: 0x000000 },
-            ice: { color: 0xe0ffff, roughness: 0.2, metalness: 0.5, emissive: 0x002244 },
-            lava: { color: 0xff4500, roughness: 0.3, metalness: 0.6, emissive: 0xff2200 },
-            swamp: { color: 0x556b2f, roughness: 0.85, metalness: 0.0, emissive: 0x001100 }
+            forest: { 
+                color: 0x2d5016, 
+                roughness: 0.95, 
+                metalness: 0.0, 
+                emissive: 0x0a1505,
+                normalScale: 0.5
+            },
+            plains: { 
+                color: 0x7cb342, 
+                roughness: 0.9, 
+                metalness: 0.0, 
+                emissive: 0x1a2e0a,
+                normalScale: 0.3
+            },
+            desert: { 
+                color: 0xe6b073, 
+                roughness: 0.8, 
+                metalness: 0.05, 
+                emissive: 0x3d2815,
+                normalScale: 0.4
+            },
+            water: { 
+                color: 0x1976d2, 
+                roughness: 0.05, 
+                metalness: 0.9, 
+                emissive: 0x0a1f3d,
+                normalScale: 0.8,
+                transparent: true,
+                opacity: 0.8
+            },
+            mountain: { 
+                color: 0x5d5d5d, 
+                roughness: 0.98, 
+                metalness: 0.3, 
+                emissive: 0x0a0a0a,
+                normalScale: 1.0
+            },
+            ice: { 
+                color: 0xb3e5fc, 
+                roughness: 0.1, 
+                metalness: 0.7, 
+                emissive: 0x1a3d4d,
+                normalScale: 0.6,
+                transparent: true,
+                opacity: 0.9
+            },
+            lava: { 
+                color: 0xff3d00, 
+                roughness: 0.2, 
+                metalness: 0.4, 
+                emissive: 0xff4500,
+                normalScale: 0.5
+            },
+            swamp: { 
+                color: 0x4a5d3e, 
+                roughness: 0.9, 
+                metalness: 0.0, 
+                emissive: 0x121a0e,
+                normalScale: 0.7
+            }
         };
         
         // Particle system for effects
@@ -350,24 +549,26 @@
         function createParticleEffect(position, color) {
             const particleMaterial = new THREE.PointsMaterial({
                 color: color,
-                size: 0.2,
+                size: 0.25,
                 transparent: true,
-                opacity: 1.0
+                opacity: 1.0,
+                blending: THREE.AdditiveBlending,
+                sizeAttenuation: true
             });
             
             const positions = [];
             const velocities = [];
             
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < 30; i++) {
                 positions.push(
                     position.x + (Math.random() - 0.5) * 0.5,
                     position.y + (Math.random() - 0.5) * 0.5,
                     position.z + (Math.random() - 0.5) * 0.5
                 );
                 velocities.push(
-                    (Math.random() - 0.5) * 2,
-                    Math.random() * 2 + 1,
-                    (Math.random() - 0.5) * 2
+                    (Math.random() - 0.5) * 3,
+                    Math.random() * 3 + 1,
+                    (Math.random() - 0.5) * 3
                 );
             }
             
@@ -375,7 +576,7 @@
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
             
             const particleSystem = new THREE.Points(geometry, particleMaterial);
-            particleSystem.userData = { velocities, lifetime: 1.0 };
+            particleSystem.userData = { velocities, lifetime: 1.5 };
             scene.add(particleSystem);
             particles.push(particleSystem);
         }
@@ -417,7 +618,7 @@
                     const biomeType = getBiomeAt(x, z);
                     const biome = biomes[biomeType];
                     
-                    // Create ground chunk with enhanced materials
+                    // Create ground chunk with enhanced materials and PBR
                     const height = getHeightAt(x, z, biomeType);
                     const geometry = new THREE.BoxGeometry(chunkSize, height, chunkSize);
                     const material = new THREE.MeshStandardMaterial({
@@ -425,7 +626,10 @@
                         roughness: biome.roughness,
                         metalness: biome.metalness,
                         emissive: biome.emissive,
-                        emissiveIntensity: biomeType === 'lava' ? 0.5 : 0.1
+                        emissiveIntensity: biomeType === 'lava' ? 0.8 : 0.15,
+                        transparent: biome.transparent || false,
+                        opacity: biome.opacity || 1.0,
+                        envMapIntensity: 1.5
                     });
                     const mesh = new THREE.Mesh(geometry, material);
                     mesh.position.set(x + chunkSize/2, height/2 - 1, z + chunkSize/2);
@@ -473,7 +677,7 @@
             const resources = resourceTypes[biomeType] || ['Stone'];
             const resourceType = resources[Math.floor(Math.random() * resources.length)];
             
-            // Create improved 3D representation with glow effect
+            // Create improved 3D representation with enhanced glow effect
             const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
             const colorMap = {
                 Wood: 0x8b4513,
@@ -487,14 +691,16 @@
             };
             const material = new THREE.MeshStandardMaterial({
                 color: colorMap[resourceType] || 0xffffff,
-                roughness: 0.6,
-                metalness: resourceType === 'Iron' || resourceType === 'Copper' ? 0.8 : 0.2,
+                roughness: 0.4,
+                metalness: resourceType === 'Iron' || resourceType === 'Copper' ? 0.9 : 0.1,
                 emissive: colorMap[resourceType] || 0xffffff,
-                emissiveIntensity: resourceType === 'Crystal' ? 0.3 : 0.1
+                emissiveIntensity: resourceType === 'Crystal' ? 0.6 : 0.2,
+                envMapIntensity: 2.0
             });
             const mesh = new THREE.Mesh(geometry, material);
             mesh.position.set(x, y + 0.5, z);
             mesh.castShadow = true;
+            mesh.receiveShadow = true;
             mesh.userData = { type: 'resource', resourceType };
             scene.add(mesh);
             gameState.resources.push(mesh);
@@ -575,6 +781,178 @@
                 attack();
             }
         });
+        
+        // Mobile Controls Implementation
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+        
+        if (isMobile) {
+            // Virtual joystick state
+            const joystick = {
+                active: false,
+                startX: 0,
+                startY: 0,
+                currentX: 0,
+                currentY: 0,
+                deltaX: 0,
+                deltaY: 0
+            };
+            
+            const joystickZone = document.getElementById('joystickZone');
+            const joystickStick = document.getElementById('joystickStick');
+            const maxDistance = 45; // Maximum joystick distance from center
+            
+            // Touch handlers for joystick
+            joystickZone.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = joystickZone.getBoundingClientRect();
+                joystick.active = true;
+                joystick.startX = rect.left + rect.width / 2;
+                joystick.startY = rect.top + rect.height / 2;
+                updateJoystick(touch.clientX, touch.clientY);
+            }, { passive: false });
+            
+            joystickZone.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (joystick.active) {
+                    const touch = e.touches[0];
+                    updateJoystick(touch.clientX, touch.clientY);
+                }
+            }, { passive: false });
+            
+            joystickZone.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                joystick.active = false;
+                joystick.deltaX = 0;
+                joystick.deltaY = 0;
+                joystickStick.style.left = '50%';
+                joystickStick.style.top = '50%';
+                moveState.forward = false;
+                moveState.backward = false;
+                moveState.left = false;
+                moveState.right = false;
+            }, { passive: false });
+            
+            function updateJoystick(touchX, touchY) {
+                const deltaX = touchX - joystick.startX;
+                const deltaY = touchY - joystick.startY;
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                if (distance > maxDistance) {
+                    const angle = Math.atan2(deltaY, deltaX);
+                    joystick.currentX = Math.cos(angle) * maxDistance;
+                    joystick.currentY = Math.sin(angle) * maxDistance;
+                } else {
+                    joystick.currentX = deltaX;
+                    joystick.currentY = deltaY;
+                }
+                
+                // Update visual position
+                joystickStick.style.left = `calc(50% + ${joystick.currentX}px)`;
+                joystickStick.style.top = `calc(50% + ${joystick.currentY}px)`;
+                
+                // Calculate normalized values (-1 to 1)
+                joystick.deltaX = joystick.currentX / maxDistance;
+                joystick.deltaY = joystick.currentY / maxDistance;
+                
+                // Update movement state based on joystick position
+                const threshold = 0.3;
+                moveState.forward = joystick.deltaY < -threshold;
+                moveState.backward = joystick.deltaY > threshold;
+                moveState.left = joystick.deltaX < -threshold;
+                moveState.right = joystick.deltaX > threshold;
+            }
+            
+            // Action buttons
+            document.getElementById('jumpButton').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (moveState.canJump) {
+                    moveState.jump = true;
+                }
+            }, { passive: false });
+            
+            document.getElementById('gatherButton').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                gatherResource();
+            }, { passive: false });
+            
+            // Tap to interact/attack (screen tap outside controls)
+            let tapTimeout;
+            canvas.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const touchX = touch.clientX - rect.left;
+                const touchY = touch.clientY - rect.top;
+                
+                // Check if touch is not on controls (right side for attack)
+                if (touchX > rect.width / 2 && touchY < rect.height - 200) {
+                    tapTimeout = setTimeout(() => {
+                        if (controls.isLocked) {
+                            attack();
+                        } else {
+                            controls.lock();
+                        }
+                    }, 50);
+                }
+            });
+            
+            canvas.addEventListener('touchend', () => {
+                clearTimeout(tapTimeout);
+            });
+            
+            // Camera control via touch drag on right side of screen
+            let lastTouchX = 0;
+            let lastTouchY = 0;
+            let isCameraDragging = false;
+            
+            canvas.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const touchX = touch.clientX - rect.left;
+                
+                // Right half of screen for camera control
+                if (touchX > rect.width / 2) {
+                    isCameraDragging = true;
+                    lastTouchX = touch.clientX;
+                    lastTouchY = touch.clientY;
+                    
+                    // Auto-lock controls for mobile
+                    if (!controls.isLocked) {
+                        controls.lock();
+                    }
+                }
+            }, { passive: true });
+            
+            canvas.addEventListener('touchmove', (e) => {
+                if (isCameraDragging && controls.isLocked) {
+                    const touch = e.touches[0];
+                    const deltaX = touch.clientX - lastTouchX;
+                    const deltaY = touch.clientY - lastTouchY;
+                    
+                    // Sensitivity adjustment for mobile
+                    const sensitivity = 0.003;
+                    
+                    // Get the Euler angles
+                    const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+                    euler.setFromQuaternion(camera.quaternion);
+                    
+                    // Update rotation
+                    euler.y -= deltaX * sensitivity;
+                    euler.x -= deltaY * sensitivity;
+                    euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.x));
+                    
+                    camera.quaternion.setFromEuler(euler);
+                    
+                    lastTouchX = touch.clientX;
+                    lastTouchY = touch.clientY;
+                }
+            }, { passive: true });
+            
+            canvas.addEventListener('touchend', () => {
+                isCameraDragging = false;
+            }, { passive: true });
+        }
         
         // Game actions
         function gatherResource() {
